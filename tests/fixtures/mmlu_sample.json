@@ -1,0 +1,5 @@
+[
+  {"subject": "high_school_physics", "question": "What is the SI unit of force?", "choices": ["Joule", "Newton", "Watt", "Pascal"], "answer": 1},
+  {"subject": "high_school_physics", "question": "Speed of light in vacuum (m/s)?", "choices": ["3e6", "3e8", "3e10", "3e5"], "answer": 1},
+  {"subject": "world_history", "question": "Year the Berlin Wall fell?", "choices": ["1987", "1988", "1989", "1990"], "answer": 2}
+]
