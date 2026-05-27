@@ -1,40 +1,50 @@
 from __future__ import annotations
+
 import hashlib
+from datetime import UTC, datetime
+from typing import Any
+
 import duckdb
-from datetime import datetime, timezone
 
 _LETTERS = ["A", "B", "C", "D"]
+
 
 def _hash_question_id(subject: str, question: str) -> str:
     return hashlib.sha256(f"{subject}|{question}".encode()).hexdigest()[:16]
 
-def _fetch_mmlu(subjects: list[str] | None) -> tuple[list[dict], str]:
+
+def _fetch_mmlu(subjects: list[str] | None) -> tuple[list[dict[str, Any]], str]:
     """Fetch MMLU from HuggingFace. Returns (rows, dataset_version_sha).
 
-    Real implementation uses `datasets.load_dataset('cais/mmlu', 'all', split='test')`.
+    Lazy-imports `datasets` so unit tests that patch this function don't need it.
     Mocked in tests.
     """
-    from datasets import load_dataset  # lazy import
-    ds = load_dataset("cais/mmlu", "all", split="test")
-    rows = []
-    for r in ds:
-        if subjects and r["subject"] not in subjects:
-            continue
-        rows.append({
-            "subject": r["subject"],
-            "question": r["question"],
-            "choices": r["choices"],
-            "answer": r["answer"],
-        })
-    version_sha = getattr(ds, "_fingerprint", "unknown")[:16]
-    return rows, version_sha
+    try:
+        from datasets import load_dataset  # type: ignore[import-untyped]
+
+        ds = load_dataset("cais/mmlu", "all", split="test")
+        rows: list[dict[str, Any]] = []
+        for r in ds:
+            if subjects and r["subject"] not in subjects:
+                continue
+            rows.append({
+                "subject": r["subject"],
+                "question": r["question"],
+                "choices": r["choices"],
+                "answer": r["answer"],
+            })
+        version_sha = getattr(ds, "_fingerprint", "unknown")[:16]
+        return rows, version_sha
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch MMLU from HuggingFace: {e}") from e
+
 
 def load_mmlu_to_warehouse(
     con: duckdb.DuckDBPyConnection,
     subjects: list[str] | None = None,
 ) -> int:
     rows, version = _fetch_mmlu(subjects)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     inserted = 0
     for r in rows:
         qid = _hash_question_id(r["subject"], r["question"])
