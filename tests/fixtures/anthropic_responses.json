@@ -1,0 +1,7 @@
+[
+  {"completion": "B", "input_tokens": 50, "output_tokens": 1},
+  {"completion": "The answer is B.", "input_tokens": 50, "output_tokens": 6},
+  {"completion": "C", "input_tokens": 50, "output_tokens": 1},
+  {"completion": "", "input_tokens": 50, "output_tokens": 0},
+  {"completion": "I cannot answer this.", "input_tokens": 50, "output_tokens": 6}
+]
