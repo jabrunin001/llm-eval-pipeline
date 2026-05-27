@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: mart_pass_rate_by_model
+    description: "Headline mart: per-model, per-subject-group pass rate with Wilson 95% CI."
+    columns:
+      - name: model
+        data_tests: [not_null]
+      - name: pass_rate
+        data_tests: [not_null]
+  - name: mart_category_breakdown
+    description: "Per-model, per-subject pass rate. Finer-grained than subject_group."
+  - name: mart_run_drift
+    description: "Per-model, per-run pass rate ordered by start time; drift legible via delta_from_first_run."
+    columns:
+      - name: run_seq
+        data_tests: [not_null]
