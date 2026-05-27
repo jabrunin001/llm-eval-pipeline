@@ -3,43 +3,43 @@ import duckdb
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS raw_mmlu_questions (
-    question_id     TEXT PRIMARY KEY,
-    subject         TEXT NOT NULL,
-    question        TEXT NOT NULL,
-    choice_a        TEXT NOT NULL,
-    choice_b        TEXT NOT NULL,
-    choice_c        TEXT NOT NULL,
-    choice_d        TEXT NOT NULL,
+    question_id     VARCHAR PRIMARY KEY,
+    subject         VARCHAR NOT NULL,
+    question        VARCHAR NOT NULL,
+    choice_a        VARCHAR NOT NULL,
+    choice_b        VARCHAR NOT NULL,
+    choice_c        VARCHAR NOT NULL,
+    choice_d        VARCHAR NOT NULL,
     answer          CHAR(1) NOT NULL CHECK (answer IN ('A','B','C','D')),
-    dataset_version TEXT NOT NULL,
-    loaded_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    dataset_version VARCHAR NOT NULL,
+    loaded_at       TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS raw_eval_runs (
-    run_id          UUID PRIMARY KEY,
-    model           TEXT NOT NULL,
-    model_provider  TEXT NOT NULL,
-    prompt_version  TEXT NOT NULL,
+    run_id          VARCHAR PRIMARY KEY,
+    model           VARCHAR NOT NULL,
+    model_provider  VARCHAR NOT NULL,
+    prompt_version  VARCHAR NOT NULL,
     seed            INTEGER NOT NULL,
     subset_size     INTEGER NOT NULL,
     temperature     DOUBLE NOT NULL,
     started_at      TIMESTAMP NOT NULL,
     finished_at     TIMESTAMP,
-    status          TEXT NOT NULL CHECK (status IN ('completed','failed','partial')),
-    error_message   TEXT
+    status          VARCHAR NOT NULL CHECK (status IN ('completed','failed','partial')),
+    error_message   VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS raw_eval_responses (
-    response_id     UUID PRIMARY KEY,
-    run_id          UUID NOT NULL REFERENCES raw_eval_runs(run_id),
-    question_id     TEXT NOT NULL REFERENCES raw_mmlu_questions(question_id),
-    raw_completion  TEXT NOT NULL,
+    response_id     VARCHAR PRIMARY KEY,
+    run_id          VARCHAR NOT NULL REFERENCES raw_eval_runs(run_id),
+    question_id     VARCHAR NOT NULL REFERENCES raw_mmlu_questions(question_id),
+    raw_completion  VARCHAR NOT NULL,
     parsed_answer   CHAR(1) CHECK (parsed_answer IN ('A','B','C','D')),
     is_correct      BOOLEAN,
-    latency_ms      INTEGER NOT NULL,
+    latency_ms      BIGINT NOT NULL,
     input_tokens    INTEGER NOT NULL,
     output_tokens   INTEGER NOT NULL,
-    api_error       TEXT,
+    api_error       VARCHAR,
     responded_at    TIMESTAMP NOT NULL,
     UNIQUE (run_id, question_id)
 );
