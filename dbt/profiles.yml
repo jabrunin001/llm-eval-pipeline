@@ -1,0 +1,22 @@
+eval_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('EVAL_DB_PATH', '../data/eval.duckdb') }}"
+      threads: 4
+    ci:
+      type: duckdb
+      path: "{{ env_var('EVAL_DB_PATH', '../data/ci.duckdb') }}"
+      threads: 2
+    snowflake:
+      # Portability target. Not required to run; documents that dbt can ship to a real warehouse.
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', '') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', '') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ANALYST') }}"
+      database: "{{ env_var('SNOWFLAKE_DB', 'EVAL') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WH', 'COMPUTE_WH') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'MAIN') }}"
+      threads: 4
