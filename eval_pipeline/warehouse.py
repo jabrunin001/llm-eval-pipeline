@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import duckdb
 
 SCHEMA_SQL = """

@@ -1,8 +1,10 @@
-import pytest
-from pathlib import Path
+from datetime import UTC, datetime
 from uuid import uuid4
-from datetime import datetime, timezone
-from eval_pipeline.warehouse import connect, bootstrap_schema
+
+import pytest
+
+from eval_pipeline.warehouse import bootstrap_schema, connect
+
 
 def test_bootstrap_creates_three_raw_tables(tmp_path):
     db_path = tmp_path / "test.duckdb"
@@ -20,19 +22,23 @@ def test_unique_constraint_on_run_question(tmp_path):
     rid = str(uuid4())
     qid = "q1"
     # Need a question row first because raw_eval_responses FK-references raw_mmlu_questions
-    con.execute("""
-        INSERT INTO raw_mmlu_questions VALUES (?, 'math', 'q?', 'a', 'b', 'c', 'd', 'A', 'sha', CURRENT_TIMESTAMP)
-    """, [qid])
-    con.execute("""
-        INSERT INTO raw_eval_runs VALUES (?, 'm', 'anthropic', 'sha', 42, 1, 0.0, ?, NULL, 'partial', NULL)
-    """, [rid, datetime.now(timezone.utc)])
+    con.execute(
+        "INSERT INTO raw_mmlu_questions VALUES "
+        "(?, 'math', 'q?', 'a', 'b', 'c', 'd', 'A', 'sha', CURRENT_TIMESTAMP)",
+        [qid],
+    )
+    con.execute(
+        "INSERT INTO raw_eval_runs VALUES "
+        "(?, 'm', 'anthropic', 'sha', 42, 1, 0.0, ?, NULL, 'partial', NULL)",
+        [rid, datetime.now(UTC)],
+    )
     con.execute("""
         INSERT INTO raw_eval_responses VALUES (?, ?, ?, 'raw', 'A', true, 10, 1, 1, NULL, ?)
-    """, [str(uuid4()), rid, qid, datetime.now(timezone.utc)])
+    """, [str(uuid4()), rid, qid, datetime.now(UTC)])
     with pytest.raises(Exception, match=r"(?i)unique|duplicate|constraint"):
         con.execute("""
             INSERT INTO raw_eval_responses VALUES (?, ?, ?, 'raw2', 'B', false, 10, 1, 1, NULL, ?)
-        """, [str(uuid4()), rid, qid, datetime.now(timezone.utc)])
+        """, [str(uuid4()), rid, qid, datetime.now(UTC)])
 
 def test_bootstrap_is_idempotent(tmp_path):
     db_path = tmp_path / "test.duckdb"

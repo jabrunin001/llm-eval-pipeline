@@ -1,7 +1,10 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
+
+import pytest
+
 from eval_pipeline.models import Question, ResponseRow, RunMeta
+
 
 def test_question_validates_answer_letter():
     q = Question(
@@ -24,7 +27,7 @@ def test_response_row_allows_null_parsed_answer():
         response_id=uuid4(), run_id=uuid4(), question_id="abc",
         raw_completion="garbage", parsed_answer=None, is_correct=None,
         latency_ms=100, input_tokens=10, output_tokens=5,
-        api_error=None, responded_at=datetime.now(timezone.utc),
+        api_error=None, responded_at=datetime.now(UTC),
     )
     assert r.parsed_answer is None
     assert r.is_correct is None
@@ -34,6 +37,6 @@ def test_run_meta_status_enum():
         RunMeta(
             run_id=uuid4(), model="claude-haiku-4-5", model_provider="anthropic",
             prompt_version="sha", seed=42, subset_size=10, temperature=0.0,
-            started_at=datetime.now(timezone.utc), finished_at=None,
+            started_at=datetime.now(UTC), finished_at=None,
             status="bogus", error_message=None,
         )
