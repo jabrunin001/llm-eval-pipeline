@@ -83,3 +83,22 @@ async def test_score_run_idempotency_duplicate_blocked(tmp_path):
     # Re-score same questions for same run_id — should raise (UNIQUE violation)
     with pytest.raises(Exception, match=r"(?i)unique|duplicate|constraint"):
         await score_run(con, fake_client, rid, "m", qs)
+    assert get_run(con, rid).status == "failed"
+
+
+@pytest.mark.asyncio
+async def test_score_run_marks_nonempty_unparseable(tmp_path):
+    con = connect(tmp_path / "t.duckdb")
+    bootstrap_schema(con)
+    qs = _seed_questions(con, 1)
+    fake_client = MagicMock()
+    fake_client.messages.create = AsyncMock(return_value=_fake_completion("I refuse to answer"))
+    rid = start_run(con, model="m", prompt_version="v1", seed=1, subset_size=1, temperature=0.0)
+    await score_run(con, fake_client, rid, "m", qs)
+    row = con.execute(
+        "SELECT parsed_answer, is_correct, api_error FROM raw_eval_responses WHERE run_id = ?",
+        [str(rid)],
+    ).fetchone()
+    assert row[0] is None
+    assert row[1] is None
+    assert row[2] == "unparseable"

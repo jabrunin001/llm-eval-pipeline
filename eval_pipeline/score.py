@@ -3,13 +3,13 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any
 from uuid import UUID, uuid4
 
 import duckdb
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from eval_pipeline.models import AnswerLetter, Question, ResponseRow
+from eval_pipeline.models import Question, ResponseRow
 from eval_pipeline.prompts import SYSTEM_PROMPT, parse_letter, render_prompt
 from eval_pipeline.runs import finish_run, mark_run_failed
 
@@ -48,9 +48,14 @@ async def _score_one(client: Any, model: str, q: Question, run_id: UUID) -> Resp
     try:
         completion = await _call_with_retry(client, model, q)
         raw = completion.content[0].text if completion.content else ""
-        parsed = cast("AnswerLetter | None", parse_letter(raw))
+        parsed = parse_letter(raw)
         is_correct = (parsed == q.answer) if parsed else None
-        api_error = "empty_completion" if not raw.strip() else None
+        if not raw.strip():
+            api_error = "empty_completion"
+        elif parsed is None:
+            api_error = "unparseable"
+        else:
+            api_error = None
         latency_ms = int((time.perf_counter() - started) * 1000)
         return ResponseRow(
             response_id=uuid4(),
@@ -117,10 +122,8 @@ async def score_run(
             return await _score_one(client, model, q, run_id)
 
     try:
-        for i in range(0, len(questions), batch_size):
-            chunk = questions[i : i + batch_size]
-            results = await asyncio.gather(*[bounded(q) for q in chunk])
-            _insert_responses(con, list(results))
+        results = await asyncio.gather(*[bounded(q) for q in questions])
+        _insert_responses(con, results)
         finish_run(con, run_id, status="completed")
     except Exception as e:
         mark_run_failed(con, run_id, f"{type(e).__name__}: {e}")

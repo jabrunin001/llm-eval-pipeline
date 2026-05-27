@@ -1,6 +1,7 @@
 import re
+from typing import cast
 
-from eval_pipeline.models import Question
+from eval_pipeline.models import AnswerLetter, Question
 
 PROMPT_TEMPLATE_VERSION = "v1"
 
@@ -39,17 +40,17 @@ _LETTER_PATTERNS = [
 ]
 
 
-def parse_letter(raw: str) -> str | None:
+def parse_letter(raw: str) -> AnswerLetter | None:
     if not raw or not raw.strip():
         return None
     # Try targeted patterns first (specific cues for the answer)
     for pat in _LETTER_PATTERNS[:-1]:  # all except last-resort
         m = pat.search(raw)
         if m:
-            return m.group(1).upper()
+            return cast("AnswerLetter", m.group(1).upper())
     # Last-resort: only fire if there is exactly one A-D letter at word boundaries
     last_resort = _LETTER_PATTERNS[-1]
     matches = {m.group(1).upper() for m in last_resort.finditer(raw)}
     if len(matches) == 1:
-        return matches.pop()
+        return cast("AnswerLetter", matches.pop())
     return None
