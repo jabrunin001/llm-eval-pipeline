@@ -4,8 +4,6 @@ A reproducible analytics-engineering pipeline for LLM evaluation data — MMLU b
 
 > ⚠️ Portfolio project. Three runs per model is not enough for real eval conclusions — see [Limitations](#limitations).
 
-![dashboard screenshot placeholder](docs/dashboard.png)
-
 ## Why eval-data plumbing matters for an AI lab
 
 Every public benchmark number you see — MMLU 87%, HumanEval 92% — sits on top of a pipeline that loaded a dataset, sampled it, ran a model against it, parsed completions, joined to ground truth, and aggregated. That pipeline rarely shows up in papers. When it breaks subtly — a prompt-template typo, a parser regex that drops 3% of completions as "unparseable", a dataset-version drift — the benchmark number lies and a research decision gets made on a lie.
@@ -25,7 +23,7 @@ Anthropic API ───(score.py)──▶ raw_eval_responses ─┤
 - **3 Claude models** (Haiku 4.5, Sonnet 4.6, Opus 4.7), **3 runs each**, scored against an MMLU subset.
 - **dbt project** with `staging → intermediate → marts`. Three marts: `mart_pass_rate_by_model` (with Wilson 95% CIs), `mart_category_breakdown` (per-subject), `mart_run_drift`.
 - **Streamlit dashboard** for exploration.
-- **dbt docs lineage** at `docs/lineage.svg`.
+- **dbt docs lineage** — run `make docs` and open `dbt/target/index.html`; see [`docs/lineage.md`](docs/lineage.md).
 
 ## What's interesting in the code
 
