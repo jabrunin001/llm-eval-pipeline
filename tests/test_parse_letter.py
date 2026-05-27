@@ -44,3 +44,31 @@ def test_render_prompt_contains_choices():
 def test_prompt_template_version_is_set():
     assert PROMPT_TEMPLATE_VERSION  # non-empty
     assert SYSTEM_PROMPT
+
+
+def test_render_prompt_preserves_braces_in_data():
+    q = Question(
+        question_id="x", subject="math", question="Solve {x+1}=2",
+        choice_a="x={1}", choice_b="x=0", choice_c="x={2}", choice_d="x={3}",
+        answer="A", dataset_version="sha",
+    )
+    out = render_prompt(q)
+    assert "{x+1}=2" in out
+    assert "x={1}" in out
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("A or B", None),               # ambiguous
+    ("The answer is B or C", "B"),  # "answer is" targets first
+    ("Options A, B, C, and D", None),  # all four
+    ("Just A here, no others", "A"),  # only one letter present
+])
+def test_parse_letter_ambiguity(raw, expected):
+    assert parse_letter(raw) == expected
+
+
+def test_parse_letter_avoids_letter_hyphen_words():
+    assert parse_letter("D-level performance") is None
+    assert parse_letter("B-cell receptors are...") is None
+    # but still parses targeted patterns
+    assert parse_letter("The answer is D. D-level explanation follows") == "D"
