@@ -13,6 +13,7 @@ data/
 *.duckdb
 *.duckdb.wal
 .env
+.streamlit/
 
 # dbt
 dbt/target/
