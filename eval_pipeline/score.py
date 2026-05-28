@@ -21,6 +21,12 @@ class _Retryable(Exception):
     pass
 
 
+def _supports_temperature(model: str) -> bool:
+    # Opus 4.7+ deprecated the temperature parameter; the model manages its own
+    # sampling for extended-thinking modes. Sending temperature returns HTTP 400.
+    return not model.startswith("claude-opus-4-")
+
+
 @retry(
     retry=retry_if_exception_type(_Retryable),
     stop=stop_after_attempt(5),
@@ -28,14 +34,16 @@ class _Retryable(Exception):
     reraise=True,
 )
 async def _call_with_retry(client: Any, model: str, q: Question) -> Any:
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "max_tokens": MAX_TOKENS,
+        "system": SYSTEM_PROMPT,
+        "messages": [{"role": "user", "content": render_prompt(q)}],
+    }
+    if _supports_temperature(model):
+        kwargs["temperature"] = 0.0
     try:
-        return await client.messages.create(
-            model=model,
-            max_tokens=MAX_TOKENS,
-            temperature=0.0,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": render_prompt(q)}],
-        )
+        return await client.messages.create(**kwargs)
     except Exception as e:
         cls = type(e).__name__
         if any(k in cls for k in ("RateLimit", "APIConnection", "APIStatus", "InternalServer")):
