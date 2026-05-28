@@ -1142,3 +1142,137 @@ select.filter-input {
     margin-bottom: var(--space-md);
     stroke-width: 1.5;
 }
+
+/* ==========================================================================
+   Mobile responsive pass
+   - 768px: tablets + landscape phones
+   - 480px: small phones
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* Tighten outer container padding so content reaches the edges */
+    .app-container {
+        padding: var(--space-sm) var(--space-md) var(--space-lg) var(--space-md);
+    }
+
+    /* Header: stack logo row above meta pills */
+    .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-md);
+        padding: var(--space-md);
+    }
+    .logo-section h1 { font-size: 1.25rem; }
+    .header-meta {
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        width: 100%;
+    }
+    .meta-pill { font-size: 0.7rem; padding: 0.3rem 0.65rem; }
+
+    /* Nav tabs: horizontal scroll instead of compressing labels to nothing */
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.85rem;
+        gap: 6px;
+    }
+    .tab-btn svg { width: 16px; height: 16px; }
+
+    /* KPI cards: tighter, smaller value text */
+    .metric-card { padding: var(--space-md); }
+    .metric-value { font-size: 1.75rem; }
+    .metric-header { font-size: 0.75rem; }
+
+    /* Section cards across all tabs */
+    .section-card { padding: var(--space-md); }
+    .section-title { font-size: 1.05rem; }
+    .section-title svg { width: 18px; height: 18px; }
+
+    /* Tab intro panels: tighter */
+    .tab-intro { margin-bottom: var(--space-md); }
+    .tab-intro p { font-size: 0.9rem; }
+
+    /* Chart containers: shorter, content stays readable */
+    .chart-container { height: 280px; }
+
+    /* Lineage flow: nodes go full width, each row becomes a stacked column */
+    .lineage-graph-container {
+        padding: var(--space-md) 0;
+        gap: var(--space-lg);
+    }
+    .lineage-row {
+        gap: var(--space-md);
+        flex-direction: column;
+        align-items: center;
+    }
+    .lineage-node {
+        width: 100%;
+        max-width: 320px;
+    }
+    .lineage-row + .lineage-row::before {
+        top: calc(-1 * var(--space-lg));
+        height: var(--space-lg);
+    }
+
+    /* Filter bar: tighter padding (it already auto-stacks via grid) */
+    .filter-bar { padding: var(--space-sm); gap: var(--space-sm); }
+
+    /* Completions table: shorter cells, smaller header text */
+    .completions-table th,
+    .completions-table td {
+        padding: var(--space-sm);
+        font-size: 0.8rem;
+    }
+    .completions-table td { max-width: 180px; }
+
+    /* Pagination footer: stack instead of pushing buttons off-screen */
+    .table-footer {
+        flex-direction: column;
+        gap: var(--space-sm);
+        align-items: stretch;
+    }
+    .pagination-buttons {
+        display: flex;
+        gap: var(--space-sm);
+        justify-content: space-between;
+    }
+    .pagination-btn { flex: 1; }
+
+    /* Reading-room doc boxes: shorter (already stack via earlier 768px rule) */
+    .doc-box {
+        padding: var(--space-md);
+        max-height: 400px;
+    }
+
+    /* Completion drawer: wider on tablet (full screen on phone handled by 640px rule) */
+    .completions-drawer { width: 90vw; max-width: 540px; }
+}
+
+@media (max-width: 480px) {
+    /* Hide the small uppercase subtitle in the header on tiny screens */
+    .logo-section p { display: none; }
+    .logo-section h1 { font-size: 1.1rem; }
+
+    /* KPI value scales down once more on narrow screens */
+    .metric-value { font-size: 1.55rem; }
+
+    /* Chart cards: shorter still so they don't dominate */
+    .chart-container { height: 240px; }
+
+    /* Drawer goes full-screen (already handled by .completions-drawer at 640px,
+       this just tightens internal padding) */
+    .drawer-header,
+    .drawer-body { padding: var(--space-md); }
+
+    /* Lineage nodes: drop the max-width cap to fully fill the column */
+    .lineage-node { max-width: 100%; }
+}
