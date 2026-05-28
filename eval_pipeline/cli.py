@@ -50,14 +50,20 @@ def load(
     typer.echo(f"Loaded {n} questions")
 
 
-def _score_impl(
+async def _score_one_run(
     *,
     model: str,
-    subset_size: int = 200,
-    seed: int = 42,
-    temperature: float = 0.0,
+    subset_size: int,
+    seed: int,
+    temperature: float,
 ) -> None:
-    """Internal scoring implementation (called by both `score` and `run` commands)."""
+    """Async helper: sample questions, start a run, score it, close the client.
+
+    Constructs and closes a fresh AsyncAnthropic per call. Because all invocations
+    share a single outer event loop (via `_score_async`), httpx's connection-pool
+    teardown happens on the loop that owns it — fixes 'Event loop is closed' that
+    arose when each run was wrapped in its own `asyncio.run()`.
+    """
     from anthropic import AsyncAnthropic
 
     con = connect(_db_path())
@@ -84,9 +90,38 @@ def _score_impl(
         con, model=model, prompt_version=PROMPT_TEMPLATE_VERSION,
         seed=seed, subset_size=len(questions), temperature=temperature,
     )
-    client = AsyncAnthropic()
-    asyncio.run(score_run(con, client, rid, model, questions))
+    async with AsyncAnthropic() as client:
+        await score_run(con, client, rid, model, questions)
     typer.echo(f"Run complete: {rid}")
+
+
+def _score_impl(
+    *,
+    model: str,
+    subset_size: int = 200,
+    seed: int = 42,
+    temperature: float = 0.0,
+) -> None:
+    """Sync wrapper around `_score_one_run` for the `score` Typer command."""
+    asyncio.run(_score_one_run(
+        model=model, subset_size=subset_size, seed=seed, temperature=temperature,
+    ))
+
+
+async def _run_all(
+    models: list[str],
+    n_runs: int,
+    subset_size: int,
+    base_seed: int,
+) -> None:
+    """One event loop covers every model × seed combination — see `_score_one_run`."""
+    for m in models:
+        for i in range(n_runs):
+            seed = base_seed + i
+            typer.echo(f"--- {m} run {i+1}/{n_runs} (seed={seed}) ---")
+            await _score_one_run(
+                model=m, subset_size=subset_size, seed=seed, temperature=0.0,
+            )
 
 
 @app.command()
@@ -115,11 +150,7 @@ def run(
     ),
 ) -> None:
     """Run all models × n_runs in sequence."""
-    for m in models:
-        for i in range(n_runs):
-            seed = base_seed + i
-            typer.echo(f"--- {m} run {i+1}/{n_runs} (seed={seed}) ---")
-            _score_impl(model=m, subset_size=subset_size, seed=seed, temperature=0.0)
+    asyncio.run(_run_all(models, n_runs, subset_size, base_seed))
 
 
 if __name__ == "__main__":
