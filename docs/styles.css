@@ -1170,7 +1170,7 @@ select.filter-input {
     }
     .meta-pill { font-size: 0.7rem; padding: 0.3rem 0.65rem; }
 
-    /* Nav tabs: horizontal scroll instead of compressing labels to nothing */
+    /* Nav tabs: horizontal scroll on tablet (641-768px) for full labels */
     .nav-tabs {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -1255,6 +1255,24 @@ select.filter-input {
 
     /* Completion drawer: wider on tablet (full screen on phone handled by 640px rule) */
     .completions-drawer { width: 90vw; max-width: 540px; }
+}
+
+/* Phone (≤640px): all four tabs fit on screen as icons, no horizontal scroll */
+@media (max-width: 640px) {
+    .nav-tabs {
+        overflow-x: visible;
+        padding: 4px;
+        gap: 2px;
+    }
+    .tab-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 0.7rem 0.25rem;
+        gap: 0;
+    }
+    /* Hide the text labels — icons + aria-labels carry the meaning */
+    .tab-label { display: none; }
+    .tab-btn svg { width: 20px; height: 20px; }
 }
 
 @media (max-width: 480px) {
