@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_mmlu_questions
+    columns:
+      - name: question_id
+        data_tests: [unique, not_null]
+      - name: answer
+        data_tests:
+          - accepted_values:
+              values: ['A','B','C','D']
+  - name: stg_eval_runs
+    columns:
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ['completed','failed','partial']
+  - name: stg_eval_responses
+    columns:
+      - name: response_id
+        data_tests: [unique, not_null]
+      - name: run_id
+        data_tests:
+          - relationships:
+              to: ref('stg_eval_runs')
+              field: run_id
+      - name: question_id
+        data_tests:
+          - relationships:
+              to: ref('stg_mmlu_questions')
+              field: question_id

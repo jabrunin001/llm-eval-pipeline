@@ -1,0 +1,50 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Immutable landing tables populated by eval_pipeline (Python)."
+    schema: main
+    tables:
+      - name: raw_mmlu_questions
+        description: "MMLU questions loaded from HuggingFace cais/mmlu."
+        columns:
+          - name: question_id
+            description: "Stable 16-char hash of subject+question."
+            data_tests: [unique, not_null]
+          - name: answer
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ['A', 'B', 'C', 'D']
+      - name: raw_eval_runs
+        description: "Run ledger. One row per `score` invocation."
+        loaded_at_field: started_at
+        config:
+          tags: [freshness]
+        freshness:
+          warn_after: {count: 7, period: day}
+          error_after: {count: 14, period: day}
+        columns:
+          - name: run_id
+            data_tests: [unique, not_null]
+          - name: status
+            data_tests:
+              - accepted_values:
+                  values: ['completed', 'failed', 'partial']
+      - name: raw_eval_responses
+        description: "One row per (run, question) API call."
+        columns:
+          - name: response_id
+            data_tests: [unique, not_null]
+          - name: run_id
+            data_tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'raw_eval_runs')
+                  field: run_id
+          - name: question_id
+            data_tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'raw_mmlu_questions')
+                  field: question_id

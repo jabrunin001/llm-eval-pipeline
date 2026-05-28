@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LLM Eval Pipeline - Reproducible analytics engineering pipeline for LLM evaluation data on MMLU benchmarks scored against Claude.">
+    <title>LLM Eval Pipeline · MMLU on three Claude models</title>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Film Grain Texture Overlay -->
+    <div class="film-grain"></div>
+    
+    <!-- Atmospheric Ambient Glowing Lights -->
+    <div class="glow-container">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+    </div>
+    
+    <div class="app-container">
+        <!-- Dashboard Header -->
+        <header class="app-header cyber-glass">
+            <div class="logo-section">
+                <div class="logo-badge">
+                    <i data-lucide="binary"></i>
+                </div>
+                <div>
+                    <h1>LLM EVAL PIPELINE</h1>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">MMLU scored against three Claude models, modeled in dbt</p>
+                </div>
+            </div>
+
+            <div class="header-meta">
+                <div class="meta-pill live-indicator">Live data</div>
+                <div class="meta-pill"><i data-lucide="layers" style="width: 14px; height: 14px;"></i> MMLU</div>
+                <div class="meta-pill"><i data-lucide="database" style="width: 14px; height: 14px;"></i> DuckDB + dbt</div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="overview">
+                <i data-lucide="grid"></i> Overview
+            </button>
+            <button class="tab-btn" data-tab="performance">
+                <i data-lucide="trending-up"></i> Model performance
+            </button>
+            <button class="tab-btn" data-tab="completions">
+                <i data-lucide="terminal"></i> Completions explorer
+            </button>
+            <button class="tab-btn" data-tab="architecture">
+                <i data-lucide="git-pull-request"></i> Pipeline lineage
+            </button>
+        </nav>
+        
+        <!-- ==================== OVERVIEW TAB ==================== -->
+        <main id="overview" class="tab-content active">
+            <!-- Intro context for visitors -->
+            <div class="section-card cyber-glass tab-intro">
+                <h2 class="section-title"><i data-lucide="info"></i> What you're looking at</h2>
+                <p>
+                    Three Claude models (Haiku 4.5, Sonnet 4.6, Opus 4.7) each answered 200 MMLU questions
+                    three separate times with different sampling seeds. That's 1,800 graded responses backing
+                    every number on this page. The KPIs below summarize how often each model picked the right
+                    multiple-choice letter and how often the regex parser couldn't make sense of the response at all.
+                </p>
+            </div>
+
+            <!-- Grid of Metric KPI Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card cyber-glass">
+                    <div class="metric-header">
+                        <span>Overall pass rate</span>
+                        <i data-lucide="award"></i>
+                    </div>
+                    <div class="metric-value" id="stat-pass-rate">0.0%</div>
+                    <div class="metric-footer">
+                        <span>Share of responses that matched the right answer</span>
+                    </div>
+                    <div class="ci-bar-wrapper">
+                        <div class="ci-values">
+                            <span id="stat-ci-lower">0.0%</span>
+                            <span title="Wilson confidence interval: a range that captures where the true accuracy probably sits given the sample size. Narrower band = more trials.">Wilson 95% CI</span>
+                            <span id="stat-ci-upper">0.0%</span>
+                        </div>
+                        <div class="ci-track">
+                            <div class="ci-range" id="stat-ci-range-bar" style="left: 20%; width: 60%;"></div>
+                            <div class="ci-marker" id="stat-ci-marker" style="left: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card cyber-glass">
+                    <div class="metric-header">
+                        <span>Total evaluations</span>
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                    <div class="metric-value" id="stat-total-evals">0</div>
+                    <div class="metric-footer">
+                        <span class="metric-badge green" id="stat-run-badge">0 runs total</span>
+                        <span>MMLU questions answered</span>
+                    </div>
+                </div>
+
+                <div class="metric-card cyber-glass">
+                    <div class="metric-header">
+                        <span>Average latency</span>
+                        <i data-lucide="clock"></i>
+                    </div>
+                    <div class="metric-value" id="stat-latency">0ms</div>
+                    <div class="metric-footer">
+                        <span>Round-trip time per Anthropic API call</span>
+                    </div>
+                </div>
+
+                <div class="metric-card cyber-glass">
+                    <div class="metric-header">
+                        <span>Unparseable rate</span>
+                        <i data-lucide="alert-octagon"></i>
+                    </div>
+                    <div class="metric-value" id="stat-unparseable">0.0%</div>
+                    <div class="metric-footer">
+                        <span class="metric-badge" id="stat-unparseable-badge">Tracked separately</span>
+                        <span>Responses the regex couldn't pin to an A/B/C/D. These don't count as wrong, just as missing.</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Two Column Section -->
+            <div class="layout-2col">
+                <!-- Main Comparison Chart -->
+                <div class="section-card cyber-glass">
+                    <h2 class="section-title">
+                        <i data-lucide="bar-chart-3"></i> Pass rate by model and subject group
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 16px;">
+                        The 6 MMLU subjects in this run split into two buckets: STEM (physics, chemistry, biology, math) and Humanities (world history, philosophy). All three models do better on humanities than STEM. Opus is the only one that holds up on STEM.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="overview-comparison-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Model Performance Leaderboard -->
+                <div class="section-card cyber-glass">
+                    <h2 class="section-title">
+                        <i data-lucide="trophy"></i> Leaderboard
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 16px;">
+                        Pass rate, average latency, and a rough cost proxy (input + output tokens per call, in thousands).
+                    </p>
+                    <div class="model-leaderboard" id="model-leaderboard-list">
+                        <!-- Dynamic Leaderboard Items -->
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- ==================== MODEL PERFORMANCE TAB ==================== -->
+        <div id="performance" class="tab-content">
+            <!-- Intro -->
+            <div class="section-card cyber-glass tab-intro">
+                <h2 class="section-title"><i data-lucide="info"></i> Reading the run drift and subject breakdown</h2>
+                <p>
+                    Each run scored 200 MMLU questions with a different sampling seed, so most of the variation below is just that: different samples of the same model. The reason to chart it at all is to make the noise floor visible. Anything inside the Wilson CI on the overview tab is consistent with chance. Real drift detection wants runs spread out across days or weeks against a stable seed.
+                </p>
+            </div>
+
+            <div class="layout-2col">
+                <!-- Run Drift Time Chart -->
+                <div class="section-card cyber-glass">
+                    <h2 class="section-title">
+                        <i data-lucide="activity"></i> Pass rate across runs
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">
+                        Run 1 / 2 / 3 are the same model scored on three different 200-question samples. Movement of a few points is sampling noise; a sustained drop would suggest a real regression.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="run-drift-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Subject Performance Breakdown Lists -->
+                <div class="section-card cyber-glass">
+                    <h2 class="section-title">
+                        <i data-lucide="sliders"></i> Per-subject breakdown
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -10px; margin-bottom: var(--space-md);">
+                        Pick a model to see where it's strongest and weakest across the 6 MMLU subjects.
+                    </p>
+                    <div style="margin-bottom: var(--space-md);">
+                        <select class="filter-input" id="breakdown-model-select" style="width: 100%;">
+                            <!-- Dynamic Model List -->
+                        </select>
+                    </div>
+
+                    <div class="layout-2col" style="grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: 0;">
+                        <div>
+                            <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--color-success); margin-bottom: var(--space-sm); font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                                <i data-lucide="check" style="width: 16px; height: 16px;"></i> Highest pass rate
+                            </h3>
+                            <div class="category-bars" id="top-categories-list">
+                                <!-- Dynamic List -->
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--color-danger); margin-bottom: var(--space-sm); font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                                <i data-lucide="x" style="width: 16px; height: 16px;"></i> Lowest pass rate
+                            </h3>
+                            <div class="category-bars" id="bottom-categories-list">
+                                <!-- Dynamic List -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ==================== COMPLETIONS EXPLORER TAB ==================== -->
+        <div id="completions" class="tab-content">
+            <!-- Intro -->
+            <div class="section-card cyber-glass tab-intro">
+                <h2 class="section-title"><i data-lucide="info"></i> Every graded response, searchable</h2>
+                <p>
+                    The full 1,800-row eval log. Filter by model, subject group, or outcome; click any row to see the question, choices, ground truth, and the raw text the model returned. Useful for spot-checking the parser, browsing what "unparseable" actually looks like, or comparing how different models answered the same prompt.
+                </p>
+            </div>
+
+            <!-- Filters Controls -->
+            <div class="filter-bar">
+                <div class="filter-control">
+                    <label for="search-input">Search Question</label>
+                    <input type="text" id="search-input" class="filter-input" placeholder="Type keywords...">
+                </div>
+                <div class="filter-control">
+                    <label for="filter-model">Model</label>
+                    <select id="filter-model" class="filter-input">
+                        <option value="all">All Models</option>
+                        <!-- Dynamic -->
+                    </select>
+                </div>
+                <div class="filter-control">
+                    <label for="filter-subject">Subject Group</label>
+                    <select id="filter-subject" class="filter-input">
+                        <option value="all">All Groups</option>
+                        <!-- Dynamic -->
+                    </select>
+                </div>
+                <div class="filter-control">
+                    <label for="filter-outcome">Outcome</label>
+                    <select id="filter-outcome" class="filter-input">
+                        <option value="all">All Outcomes</option>
+                        <option value="correct">Correct Evals</option>
+                        <option value="incorrect">Incorrect Evals</option>
+                        <option value="unparseable">Unparseable Evals</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Completions Table -->
+            <div class="completions-table-wrapper">
+                <table class="completions-table" id="completions-table">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Model</th>
+                            <th>Subject</th>
+                            <th>Ground Truth</th>
+                            <th>Parsed Answer</th>
+                            <th>Outcome</th>
+                        </tr>
+                    </thead>
+                    <tbody id="completions-table-body">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination Controls Footer -->
+            <div class="table-footer">
+                <div id="pagination-info" style="font-size: 0.85rem; color: var(--text-muted);">
+                    Showing 0-0 of 0 records
+                </div>
+                <div class="pagination-buttons">
+                    <button class="pagination-btn" id="prev-page-btn" disabled>
+                        <i data-lucide="chevron-left" style="width: 16px; height: 16px; vertical-align: middle;"></i> Previous
+                    </button>
+                    <button class="pagination-btn" id="next-page-btn" disabled>
+                        Next <i data-lucide="chevron-right" style="width: 16px; height: 16px; vertical-align: middle;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ==================== ARCHITECTURE & DECISIONS TAB ==================== -->
+        <div id="architecture" class="tab-content">
+            <!-- Pipeline Lineage Diagram -->
+            <div class="section-card cyber-glass" style="margin-bottom: var(--space-lg);">
+                <h2 class="section-title">
+                    <i data-lucide="workflow"></i> dbt pipeline lineage
+                </h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -8px; margin-bottom: var(--space-lg); max-width: 760px;">
+                    Top row is the immutable raw layer: Python writes MMLU questions, Anthropic completions, and run metadata into DuckDB. dbt then transforms those rows down through staging (typecasts and pass-through cleanup), intermediate (joins and per-run rollups), and the three reporting marts that feed this dashboard.
+                </p>
+                <div class="lineage-graph-container">
+                    <!-- Raw Sources -->
+                    <div class="lineage-row">
+                        <div class="lineage-node">
+                            <span class="lineage-node-tag source">Raw source</span>
+                            <div class="node-title">raw_mmlu_questions</div>
+                            <div class="node-desc">MMLU questions loaded from HuggingFace</div>
+                        </div>
+                        <div class="lineage-node">
+                            <span class="lineage-node-tag source">Raw source</span>
+                            <div class="node-title">raw_eval_responses</div>
+                            <div class="node-desc">Anthropic completions, parsed answer, latency, tokens</div>
+                        </div>
+                        <div class="lineage-node">
+                            <span class="lineage-node-tag source">Raw source</span>
+                            <div class="node-title">raw_eval_runs</div>
+                            <div class="node-desc">Run ledger: model, seed, prompt git SHA, status</div>
+                        </div>
+                    </div>
+
+                    <!-- Staging Views -->
+                    <div class="lineage-row">
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag stg">dbt staging</span>
+                            <div class="node-title">stg_mmlu_questions</div>
+                            <div class="node-desc">Typecasts, lowercase subject</div>
+                        </div>
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag stg">dbt staging</span>
+                            <div class="node-title">stg_eval_responses</div>
+                            <div class="node-desc">Adds is_correct_strict and is_unparseable flags</div>
+                        </div>
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag stg">dbt staging</span>
+                            <div class="node-title">stg_eval_runs</div>
+                            <div class="node-desc">Adds computed duration_ms per run</div>
+                        </div>
+                    </div>
+
+                    <!-- Intermediate Layers -->
+                    <div class="lineage-row">
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag int">dbt intermediate</span>
+                            <div class="node-title">int_scored_responses</div>
+                            <div class="node-desc">Joins responses, runs, questions, and subject groups; filters to completed runs</div>
+                        </div>
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag int">dbt intermediate</span>
+                            <div class="node-title">int_run_summary</div>
+                            <div class="node-desc">Per-run rollup: pass rate, unparseable rate, latency, tokens</div>
+                        </div>
+                    </div>
+
+                    <!-- Analytical Marts -->
+                    <div class="lineage-row">
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag mart">dbt mart</span>
+                            <div class="node-title">mart_pass_rate_by_model</div>
+                            <div class="node-desc">Pass rate by model and subject group, with Wilson 95% CIs</div>
+                        </div>
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag mart">dbt mart</span>
+                            <div class="node-title">mart_category_breakdown</div>
+                            <div class="node-desc">Per-subject pass rate and unparseable rate</div>
+                        </div>
+                        <div class="lineage-node dbt">
+                            <span class="lineage-node-tag mart">dbt mart</span>
+                            <div class="node-title">mart_run_drift</div>
+                            <div class="node-desc">Per-run pass rate ordered by start time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Side-by-Side Reading Room -->
+            <div class="doc-reading-room">
+                <div class="section-card cyber-glass doc-box">
+                    <h3><i data-lucide="book-open"></i> Decisions</h3>
+                    <div class="doc-content">
+                        <h4>ADR-001: DuckDB as the primary warehouse</h4>
+                        <p>DuckDB is free, embedded, and runs anywhere with no setup, so the whole project clones and rebuilds in about ten minutes. A Snowflake target sits in <code>profiles.yml</code> alongside it. The dbt models are warehouse-portable; the demo just doesn't depend on a trial that expires.</p>
+
+                        <h4>ADR-002: Three Claude models, three runs each</h4>
+                        <p>Haiku 4.5, Sonnet 4.6, and Opus 4.7, each scored three times against a 200-question MMLU subset. Total API cost under $20. With only three trials the Wilson CIs are wide, which is the point: the bands make the noise floor visible instead of hiding it behind a single number.</p>
+
+                        <h4>ADR-003: Parsing lives in the raw layer</h4>
+                        <p>Both <code>raw_completion</code> and <code>parsed_answer</code> are stored at ingest time. If the regex needs fixing later, that's a SQL-only refresh; no API rerun. Staging stays a clean projection of what came back from the model.</p>
+
+                        <h4>ADR-004: No judge-model scoring</h4>
+                        <p>A judge model would resolve verbose or hedged completions better than a regex. It's out of scope for this build. Instead, <code>unparseable_rate</code> is tracked as its own metric so the regex's failures are visible rather than silently folded into "wrong".</p>
+                    </div>
+                </div>
+
+                <div class="section-card cyber-glass doc-box">
+                    <h3><i data-lucide="help-circle"></i> Why this exists</h3>
+                    <div class="doc-content">
+                        <h4>Eval-data plumbing is the invisible thing</h4>
+                        <p>Every benchmark number you've seen ("MMLU 87%", "HumanEval 92%") sits on top of a pipeline that loaded the dataset, sampled it, called the model, parsed the output, joined to ground truth, and aggregated. When that pipeline breaks subtly, a prompt-template typo or a regex that quietly drops 3% of completions, the headline number lies. This project treats the pipeline as the thing that has to be trustworthy first: versioned schemas, lineage, freshness checks, idempotent reruns.</p>
+
+                        <h4>The load-bearing pieces</h4>
+                        <p>Every scoring run gets a UUID and the prompt-template version pinned to its git SHA. A UNIQUE constraint on <code>(run_id, question_id)</code> means reruns can't silently double-count. Wilson 95% CIs sit on every pass-rate cell because three trials of 200 questions isn't enough to claim a small difference is real. Parsing and scoring live in different layers, so fixing one doesn't require rerunning the other.</p>
+
+                        <h4>What this build can't tell you</h4>
+                        <p>Three runs per model is not enough for a real lab. They'd run hundreds. The "drift" between runs here is mostly sampling variance; real drift detection needs runs spaced out over time, ideally against the same prompt fingerprint. MMLU itself is saturated, so nothing here is a SOTA claim. It's a tooling demonstration.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ==================== SIDEBAR Drawer: COMPLETION DRAWER ==================== -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="completions-drawer cyber-glass-heavy" id="completions-drawer">
+        <div class="drawer-header">
+            <div class="drawer-title-area">
+                <h3 id="drawer-question-id">Question details</h3>
+                <div class="drawer-meta-badges">
+                    <span class="meta-pill" id="drawer-badge-model">Model</span>
+                    <span class="meta-pill" id="drawer-badge-subject">Subject</span>
+                </div>
+            </div>
+            <button class="drawer-close-btn" id="drawer-close-btn">
+                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+            </button>
+        </div>
+        
+        <div class="drawer-body">
+            <!-- Question Content -->
+            <div>
+                <h4 class="drawer-section-title">Evaluation Question</h4>
+                <div class="drawer-question-box">
+                    <div class="drawer-question-text" id="drawer-question-text">
+                        Which of the following describes an idempotent operation in database systems?
+                    </div>
+                    <div class="choices-list" id="drawer-choices-list">
+                        <!-- Choices will be appended dynamically here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics Row -->
+            <div class="drawer-stats-row">
+                <div class="stat-box">
+                    <div class="stat-label">Latency</div>
+                    <div class="stat-val" id="drawer-stat-latency">1,245ms</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Input Tokens</div>
+                    <div class="stat-val" id="drawer-stat-input-tokens">940</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Output Tokens</div>
+                    <div class="stat-val" id="drawer-stat-output-tokens">14</div>
+                </div>
+            </div>
+            
+            <!-- Raw Completion Box -->
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 250px;">
+                <h4 class="drawer-section-title">Raw Model Completion</h4>
+                <div class="drawer-completion-block">
+                    <pre><code id="drawer-completion-text">
+                    <!-- Dynamic -->
+                    </code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Application Logic Data & Scripts -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
