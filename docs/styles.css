@@ -1294,3 +1294,22 @@ select.filter-input {
     /* Lineage nodes: drop the max-width cap to fully fill the column */
     .lineage-node { max-width: 100%; }
 }
+
+/* ============================================================
+   Stripe light re-theme (2026-06-02) — token overrides so the
+   dashboard matches the portfolio + sibling project dashboards.
+   ============================================================ */
+:root{
+  --bg-primary:#f6f9fc; --bg-secondary:#ffffff; --bg-tertiary:#ffffff;
+  --bg-glass:rgba(255,255,255,.88); --bg-glass-heavy:rgba(255,255,255,.97);
+  --accent-blue:#635bff; --accent-violet:#635bff; --accent-purple:#7a73ff; --accent-pink:#a960ee;
+  --color-success:#15803d; --color-danger:#dc2626;
+  --text-primary:#0a2540; --text-secondary:#425466; --text-muted:#697386; --text-glow:transparent;
+  --border-glass:#e3e8ee; --border-glass-hover:#cdd5df; --border-glow:rgba(99,91,255,.22);
+}
+html,body{background:#f6f9fc!important;color:#425466!important}
+.film-grain,.glow-orb-1,.glow-orb-2,.glow-container{display:none!important}
+.cyber-glass,.cyber-glass-heavy{background:#fff!important;border:1px solid #e3e8ee!important;
+  box-shadow:0 2px 5px rgba(60,66,87,.08),0 1px 1px rgba(0,0,0,.05)!important}
+.app-header,.app-header *{text-shadow:none!important}
+.tab-btn.active,.live-indicator{color:#635bff!important}
